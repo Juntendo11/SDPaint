@@ -1,0 +1,5 @@
+#Set texture
+bpy.ops.image.open(filepath="C:\\Users\\PC-kun\\AppData\\Roaming\\Blender Foundation\\Blender\\3.3\\scripts\\addons\\sdpaint\\render.png", directory="C:\\Users\\PC-kun\\AppData\\Roaming\\Blender Foundation\\Blender\\3.3\\scripts\\addons\\sdpaint\\", files=[{"name":"render.png", "name":"render.png"}], show_multiview=False)
+
+#Set to stencil mode
+bpy.data.brushes["TexDraw"].texture_slot.map_mode = 'STENCIL'

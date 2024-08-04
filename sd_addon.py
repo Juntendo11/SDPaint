@@ -36,9 +36,12 @@ class Generate(bpy.types.Operator):
         scene = context.scene
         mytool = scene.my_tool
         print("Generating image")
-        filepath = 'C:\\Users\\PC-kun\\AppData\\Roaming\\Blender Foundation\\Blender\\3.3\\scripts\\addons\\sdpaint\\render.png'
+        filepath = scene.conf_path
+        filepath = filepath + "render.png"
         ren_img = Image.open(filepath)
         gen_img = image_gen(ren_img, mytool.pos, mytool.neg)
+        
+        #Load stencil
         return {'FINISHED'}
     
 class Render(bpy.types.Operator):
@@ -46,7 +49,11 @@ class Render(bpy.types.Operator):
     bl_idname = "render.myop_operator"
 
     def execute(self, context):
-        filepath = context.scene.conf_path
+        scene = context.scene
+        filepath = scene.conf_path
+        absolute_conf_path = bpy.path.abspath(filepath)
+        filepath = os.path.join(absolute_conf_path, "render.png")
+        
         print(filepath)
         width,height = get_viewport_size()
         bpy.context.scene.render.resolution_x = width
@@ -145,7 +152,7 @@ def register():
       name = "Output Path",
       default = "",
       description = "Define the root path of the project",
-      subtype = 'DIR_PATH'
+      subtype = 'DIR_PATH',
       )
 
 def unregister():
