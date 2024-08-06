@@ -35,12 +35,13 @@ class Generate(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         mytool = scene.my_tool
+        absolute_conf_path = bpy.path.abspath(scene.conf_path)
+        filepath = os.path.join(absolute_conf_path, "render.png")
+        outPath  = os.path.join(absolute_conf_path, "gen.png")
         print("Generating image")
-        filepath = scene.conf_path
-        filepath = filepath + "render.png"
         ren_img = Image.open(filepath)
-        gen_img = image_gen(ren_img, mytool.pos, mytool.neg)
-        
+        gen_img = image_gen(absolute_conf_path,ren_img, mytool.pos, mytool.neg)    #output path, img, prompt, negative
+        set_tex(context, absolute_conf_path,outPath)
         #Load stencil
         return {'FINISHED'}
     
@@ -50,16 +51,19 @@ class Render(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        filepath = scene.conf_path
-        absolute_conf_path = bpy.path.abspath(filepath)
+        absolute_conf_path = bpy.path.abspath(scene.conf_path)
         filepath = os.path.join(absolute_conf_path, "render.png")
         
-        print(filepath)
         width,height = get_viewport_size()
         bpy.context.scene.render.resolution_x = width
         bpy.context.scene.render.resolution_y = height
         bpy.context.scene.render.image_settings.file_format = "PNG"
+        
+        
+        bpy.context.space_data.overlay.show_overlays = False
         bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=False, view_context=True)
+        bpy.context.space_data.overlay.show_overlays = True
+        
         bpy.data.images["Render Result"].save_render(filepath)
         print("Rendering image")
         return {'FINISHED'}
@@ -127,6 +131,67 @@ class OBJECT_PT_CustomPanel(Panel):
         
         layout.operator("generate.myop_operator")
         layout.operator("render.myop_operator")
+        
+        
+# ------------------------------------------------------------------------
+#    Functions
+# ------------------------------------------------------------------------
+
+def set_tex(context, out_path, img_path):
+    """
+    #bpy.context.space_data.context = 'TEXTURE'
+    #bpy.ops.brush.add()
+    bpy.ops.texture.new()
+    bpy.ops.image.open(filepath=img_path,
+                        directory=out_path,
+                        files=[{"name":"render.png", "name":"render.png"}], 
+                        show_multiview=False)
+                        
+    """
+    # Path to your stencil texture image
+    image_path = img_path
+
+    # Load the image into Blender
+    image = bpy.data.images.load(image_path)
+                        
+    # Create a new texture and assign the image to it
+    texture = bpy.data.textures.new(name="StencilTexture", type='IMAGE')
+    texture.image = image
+
+    # Get the active brush
+    brush = bpy.data.brushes["Draw"]
+
+    # Create a new texture slot for the brush if it doesn't have one
+    if not brush.texture_slot:
+        brush.texture_slot_add()
+
+    # Assign the texture to the brush's texture slot
+    brush.texture = texture
+
+    # Set the brush to use the texture as a stencil
+    brush.texture_overlay_alpha = 1  # Overlay opacity
+
+    print("Stencil texture applied to the brush successfully.")
+    
+
+def center_stencil():
+    v3d_list = [area for area in bpy.context.screen.areas if area.type == 'VIEW_3D']
+    if v3d_list:
+    mainV3D = max(v3d_list, key=lambda area: area.width * area.height)
+       
+    x = mainV3D.width / 2
+    y = mainV3D.height / 2
+    
+    try:
+        if bpy.context.sculpt_object:   
+            brushName = bpy.context.tool_settings.sculpt.brush.name
+        else:
+            brushName = bpy.context.tool_settings.image_paint.brush.name
+            
+        bpy.data.brushes[brushName].stencil_pos.xy = x, y
+    except:
+        pass
+
 
 # ------------------------------------------------------------------------
 #    Registration
