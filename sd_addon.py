@@ -2,6 +2,9 @@ import bpy
 import os 
 from PIL import Image
 
+from math import *
+from mathutils import *
+
 from sdpaint.sd.img2img import image_gen
 from sdpaint.bpy.viewport import get_viewport_size
 
@@ -41,8 +44,9 @@ class Generate(bpy.types.Operator):
         print("Generating image")
         ren_img = Image.open(filepath)
         gen_img = image_gen(absolute_conf_path,ren_img, mytool.pos, mytool.neg)    #output path, img, prompt, negative
-        set_tex(context, absolute_conf_path,outPath)
+        
         #Load stencil
+        import_brush(context, outPath)
         return {'FINISHED'}
     
 class Render(bpy.types.Operator):
@@ -59,7 +63,6 @@ class Render(bpy.types.Operator):
         bpy.context.scene.render.resolution_y = height
         bpy.context.scene.render.image_settings.file_format = "PNG"
         
-        
         bpy.context.space_data.overlay.show_overlays = False
         bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=False, view_context=True)
         bpy.context.space_data.overlay.show_overlays = True
@@ -68,8 +71,45 @@ class Render(bpy.types.Operator):
         print("Rendering image")
         return {'FINISHED'}
     
+class CenterStencil(bpy.types.Operator):
+    bl_label = "Center"
+    bl_idname = "center.myop_operator"
 
+    def execute(self, context):
+        scene = context.scene
+        
+        #CenterStencil
+        #bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False,use_scale=True)
+        
+        v3d_list = [area for area in bpy.context.screen.areas if area.type == 'VIEW_3D']
+        if v3d_list:
+            mainV3D = max(v3d_list, key=lambda area: area.width * area.height)
+               
+            x = mainV3D.width / 2
+            y = mainV3D.height / 2
+            
+            try:
+                if bpy.context.sculpt_object:   
+                    brushName = bpy.context.tool_settings.sculpt.brush.name
+                else:
+                    brushName = bpy.context.tool_settings.image_paint.brush.name
+                    
+                bpy.data.brushes[brushName].stencil_pos.xy = x, y
+                bpy.data.brushes[brushName].stencil_dimension.sx,sy = 1024,1024
+            except:
+                pass
+            
+            #Scale
+        
+        return {'FINISHED'}
     
+
+
+# Opacity slider 0-1
+#bpy.data.brushes["TexDraw.002"].texture_overlay_alpha = 59
+#
+
+
 # ------------------------------------------------------------------------
 #    Scene Properties
 # ------------------------------------------------------------------------
@@ -105,8 +145,8 @@ class OBJECT_PT_CustomPanel(Panel):
     bl_idname = "OBJECT_PT_custom_panel"
     bl_space_type = "VIEW_3D"   
     bl_region_type = "UI"
-    bl_category = "Tools"
-    bl_context = "objectmode"   
+    bl_category = "SDPaint"
+    bl_context = "imagepaint"
 
     
     @classmethod
@@ -131,68 +171,39 @@ class OBJECT_PT_CustomPanel(Panel):
         
         layout.operator("generate.myop_operator")
         layout.operator("render.myop_operator")
+        layout.operator("center.myop_operator")
         
         
 # ------------------------------------------------------------------------
 #    Functions
 # ------------------------------------------------------------------------
 
-def set_tex(context, out_path, img_path):
-    """
-    #bpy.context.space_data.context = 'TEXTURE'
-    #bpy.ops.brush.add()
-    bpy.ops.texture.new()
-    bpy.ops.image.open(filepath=img_path,
-                        directory=out_path,
-                        files=[{"name":"render.png", "name":"render.png"}], 
-                        show_multiview=False)
-                        
-    """
-    # Path to your stencil texture image
-    image_path = img_path
-
-    # Load the image into Blender
-    image = bpy.data.images.load(image_path)
-                        
-    # Create a new texture and assign the image to it
-    texture = bpy.data.textures.new(name="StencilTexture", type='IMAGE')
-    texture.image = image
-
-    # Get the active brush
-    brush = bpy.data.brushes["Draw"]
-
-    # Create a new texture slot for the brush if it doesn't have one
-    if not brush.texture_slot:
-        brush.texture_slot_add()
-
-    # Assign the texture to the brush's texture slot
-    brush.texture = texture
-
-    # Set the brush to use the texture as a stencil
-    brush.texture_overlay_alpha = 1  # Overlay opacity
-
-    print("Stencil texture applied to the brush successfully.")
+def import_brush(context, filepath):
     
+    file = os.path.split(filepath)[-1]
 
-def center_stencil():
-    v3d_list = [area for area in bpy.context.screen.areas if area.type == 'VIEW_3D']
-    if v3d_list:
-    mainV3D = max(v3d_list, key=lambda area: area.width * area.height)
-       
-    x = mainV3D.width / 2
-    y = mainV3D.height / 2
+    if os.path.isfile(filepath):
+        brush = bpy.data.brushes.new(file,mode='TEXTURE_PAINT')
+        tex   = bpy.data.textures.new(file,type="IMAGE")
+        image = bpy.data.images.load(filepath, check_existing=False)
+        tex.image = image
+        
+        #Set as texture 
+        brush.texture = tex
+        brush.texture_slot.map_mode = 'STENCIL'
+
+        #Disable
+        """
+        brush.use_custom_icon = True
+        brush.icon_filepath = filepath
+        brush.strength = options.default_strength
+        brush.blend = options.blend
+        """
+        #brush.texture_slot.scale =  Vector((brush.texture_slot.scale.x*(2), brush.texture_slot.scale.y*(2), 1.0))
+
+    return {'FINISHED'}
+
     
-    try:
-        if bpy.context.sculpt_object:   
-            brushName = bpy.context.tool_settings.sculpt.brush.name
-        else:
-            brushName = bpy.context.tool_settings.image_paint.brush.name
-            
-        bpy.data.brushes[brushName].stencil_pos.xy = x, y
-    except:
-        pass
-
-
 # ------------------------------------------------------------------------
 #    Registration
 # ------------------------------------------------------------------------
@@ -202,6 +213,7 @@ classes = (
     OBJECT_PT_CustomPanel,
     Generate,
     Render,
+    CenterStencil,
 )
 
 def register():
