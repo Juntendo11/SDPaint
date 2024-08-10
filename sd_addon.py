@@ -77,10 +77,10 @@ class CenterStencil(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        
+
         #CenterStencil
-        #bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False,use_scale=True)
-        
+        bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False, use_scale=True)
+
         v3d_list = [area for area in bpy.context.screen.areas if area.type == 'VIEW_3D']
         if v3d_list:
             mainV3D = max(v3d_list, key=lambda area: area.width * area.height)
@@ -95,20 +95,21 @@ class CenterStencil(bpy.types.Operator):
                     brushName = bpy.context.tool_settings.image_paint.brush.name
                     
                 bpy.data.brushes[brushName].stencil_pos.xy = x, y
-                bpy.data.brushes[brushName].stencil_dimension.sx,sy = 1024,1024
+                width,height = get_viewport_size()
+                bpy.data.brushes[brushName].stencil_dimension.xy = width/2,height/2
             except:
                 pass
-            
-            #Scale
-        
+
         return {'FINISHED'}
     
+class StencilOpacity(bpy.types.Operator):
+    bl_label = "Opacity"
+    bl_idname = "opacity.myop_operator"
+    opacity: bpy.props.FloatProperty(name="Opacity",description="Opacity",default=0.1, min=0.0, max=1.0)
 
-
-# Opacity slider 0-1
-#bpy.data.brushes["TexDraw.002"].texture_overlay_alpha = 59
-#
-
+    def execute(self, context):
+        scene = context.scene
+        bpy.data.brushes["TexDraw.002"].texture_overlay_alpha = self.opacity
 
 # ------------------------------------------------------------------------
 #    Scene Properties
@@ -135,9 +136,17 @@ class MyProperties(PropertyGroup):
         maxlen=1024,
         )
 
+    opacity: bpy.props.FloatProperty(
+        name="opacity",
+        description="Stencil opacity",
+        default=0.5,
+        min=0.0,
+        max=1.0
+    )
+
 
 # ------------------------------------------------------------------------
-#    Panel in Object Mode
+#    Panel in TexPaint Mode
 # ------------------------------------------------------------------------
 
 class OBJECT_PT_CustomPanel(Panel):
@@ -157,7 +166,8 @@ class OBJECT_PT_CustomPanel(Panel):
         layout = self.layout
         scene = context.scene
         mytool = scene.my_tool
-        
+        my_props = scene.my_props
+
         layout.prop(mytool, "api")
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
@@ -168,11 +178,12 @@ class OBJECT_PT_CustomPanel(Panel):
         col.prop(context.scene, 'conf_path')
 
         layout.separator()
-        
+
         layout.operator("generate.myop_operator")
         layout.operator("render.myop_operator")
         layout.operator("center.myop_operator")
-        
+        layout.prop(my_props,"opacity")
+
         
 # ------------------------------------------------------------------------
 #    Functions
@@ -214,6 +225,7 @@ classes = (
     Generate,
     Render,
     CenterStencil,
+    StencilOpacity,
 )
 
 def register():
@@ -222,7 +234,8 @@ def register():
         register_class(cls)
 
     bpy.types.Scene.my_tool = PointerProperty(type=MyProperties)
-    
+    bpy.types.Scene.my_props = bpy.props.PointerProperty(type=MyProperties)
+
     #Directory path
     bpy.types.Scene.conf_path = bpy.props.StringProperty \
       (
