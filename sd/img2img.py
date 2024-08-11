@@ -9,17 +9,15 @@ api = webuiapi.WebUIApi(host='127.0.0.1',
 
 ads = webuiapi.ADetailer(ad_model="face_yolov8n.pt")
 
-def image_gen(out_path, img, pos, neg, seed, denoising_strength):
+def image_gen(out_path, img, pos, neg, seed, steps, cfg, denoising_strength):
     w, h = img.size
-    print(seed)
-    print(denoising_strength)
     result = api.img2img(images=[img], 
                           prompt=pos,
                           negative_prompt=neg,
-                          seed=-1, 
-                          steps=30,
-                          cfg_scale=7.0, 
-                          denoising_strength=0.4,
+                          seed=seed,
+                          steps=steps,
+                          cfg_scale=cfg,
+                          denoising_strength=denoising_strength,
                           resize_mode=2,
                           width=w,
                           height=h,

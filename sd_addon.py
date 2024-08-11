@@ -42,15 +42,16 @@ class Generate(bpy.types.Operator):
         prompt = mytool.pos
         negative = mytool.neg
         seed_val = my_props.seed
-        denoise = my_props.denoise
+        cfg_scale = my_props.cfg
+        step_val = my_props.steps
+        denoise_val = my_props.denoise
         
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
         filepath = os.path.join(absolute_conf_path, "render.png")
         outPath  = os.path.join(absolute_conf_path, "gen.png")
         print("Generating image")
         ren_img = Image.open(filepath)
-        print(
-        gen_img = image_gen(absolute_conf_path,ren_img,prompt,negative,seed,denoise)    #output path, img, prompt, negative
+        gen_img = image_gen(absolute_conf_path,ren_img,prompt,negative,seed_val,step_val,cfg_scale,denoise_val)    #output path, img, prompt, negative
         
         #Load stencil
         import_brush(context, outPath)
@@ -113,20 +114,18 @@ class CenterStencil(bpy.types.Operator):
 class StencilOpacity(bpy.types.Operator):
     bl_label = "Opacity"
     bl_idname = "opacity.myop_operator"
-    opacity: bpy.props.FloatProperty(name="Opacity",description="Opacity",default=0.1, min=0.0, max=1.0)
 
     def execute(self, context):
         scene = context.scene
         my_props = scene.my_props
         opacity_val=my_props.opacity
         setting = self.setting
+        
         brush = bpy.context.tool_settings.image_paint.brush
         
         brush = bpy.data.brushes[brush_name]
+        
         brush.texture_slot.opacity = opacity_val
-        print(opacity_val)
-
-
 
 
 # ------------------------------------------------------------------------
@@ -159,7 +158,24 @@ class MyProperties(PropertyGroup):
         description="Seed value",
         default=-1,
     )
+
+
+    steps: bpy.props.IntProperty(
+        name="steps",
+        description="Sample steps",
+        default=30,
+        min=0,
+        max=100
+    )
     
+    cfg: bpy.props.FloatProperty(
+        name="cfg",
+        description="cfg scale",
+        default=7.0,
+        min=0.0,
+        max=100.0
+    )
+
     denoise: bpy.props.FloatProperty(
         name="denoise",
         description="Denoising scale",
@@ -204,6 +220,8 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
         layout.prop(my_props,"seed")
+        layout.prop(my_props,"steps")
+        layout.prop(my_props,"cfg")
         layout.prop(my_props,"denoise")
         
         layout.separator()
@@ -236,15 +254,6 @@ def import_brush(context, filepath):
         #Set as texture 
         brush.texture = tex
         brush.texture_slot.map_mode = 'STENCIL'
-
-        #Disable
-        """
-        brush.use_custom_icon = True
-        brush.icon_filepath = filepath
-        brush.strength = options.default_strength
-        brush.blend = options.blend
-        """
-        #brush.texture_slot.scale =  Vector((brush.texture_slot.scale.x*(2), brush.texture_slot.scale.y*(2), 1.0))
 
     return {'FINISHED'}
 
