@@ -38,12 +38,19 @@ class Generate(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         mytool = scene.my_tool
+        my_props = scene.my_props
+        prompt = mytool.pos
+        negative = mytool.neg
+        seed_val = my_props.seed
+        denoise = my_props.denoise
+        
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
         filepath = os.path.join(absolute_conf_path, "render.png")
         outPath  = os.path.join(absolute_conf_path, "gen.png")
         print("Generating image")
         ren_img = Image.open(filepath)
-        gen_img = image_gen(absolute_conf_path,ren_img, mytool.pos, mytool.neg)    #output path, img, prompt, negative
+        print(
+        gen_img = image_gen(absolute_conf_path,ren_img,prompt,negative,seed,denoise)    #output path, img, prompt, negative
         
         #Load stencil
         import_brush(context, outPath)
@@ -97,6 +104,7 @@ class CenterStencil(bpy.types.Operator):
                 bpy.data.brushes[brushName].stencil_pos.xy = x, y
                 width,height = get_viewport_size()
                 bpy.data.brushes[brushName].stencil_dimension.xy = width/2,height/2
+                
             except:
                 pass
 
@@ -109,7 +117,17 @@ class StencilOpacity(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        bpy.data.brushes["TexDraw.002"].texture_overlay_alpha = self.opacity
+        my_props = scene.my_props
+        opacity_val=my_props.opacity
+        setting = self.setting
+        brush = bpy.context.tool_settings.image_paint.brush
+        
+        brush = bpy.data.brushes[brush_name]
+        brush.texture_slot.opacity = opacity_val
+        print(opacity_val)
+
+
+
 
 # ------------------------------------------------------------------------
 #    Scene Properties
@@ -135,6 +153,20 @@ class MyProperties(PropertyGroup):
         default="",
         maxlen=1024,
         )
+
+    seed: bpy.props.IntProperty(
+        name="seed",
+        description="Seed value",
+        default=-1,
+    )
+    
+    denoise: bpy.props.FloatProperty(
+        name="denoise",
+        description="Denoising scale",
+        default=0.5,
+        min=0.0,
+        max=1.0
+    )
 
     opacity: bpy.props.FloatProperty(
         name="opacity",
@@ -171,6 +203,8 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(mytool, "api")
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
+        layout.prop(my_props,"seed")
+        layout.prop(my_props,"denoise")
         
         layout.separator()
         
