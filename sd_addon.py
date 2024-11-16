@@ -105,32 +105,26 @@ class CenterStencil(bpy.types.Operator):
 
         #CenterStencil
         bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False, use_scale=True)
-        
-        #List viewports?
+
         v3d_list = [area for area in bpy.context.screen.areas if area.type == 'VIEW_3D']
         
         if v3d_list:
-            #Get screen area
             mainV3D = max(v3d_list, key=lambda area: area.width * area.height)
-            
+               
             x = mainV3D.width / 2
             y = mainV3D.height / 2
             
-            #Get stencil brush
             try:
                 if bpy.context.sculpt_object:   
                     brushName = bpy.context.tool_settings.sculpt.brush.name
                 else:
                     brushName = bpy.context.tool_settings.image_paint.brush.name
-                
+                    
                 bpy.data.brushes[brushName].stencil_pos.xy = x, y
-                print(x,y)
                 width,height = get_viewport_size()
-                print(width, height)
                 bpy.data.brushes[brushName].stencil_dimension.xy = width/2,height/2
                 
             except:
-                print("Stencil brusb not found")
                 pass
 
         return {'FINISHED'}
