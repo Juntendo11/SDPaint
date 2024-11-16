@@ -1,14 +1,18 @@
 # ------------------------------------------------------------------------
-#    Blender stencil painter
-#    Powered by Stable Diffusion and Automatic1111 webui api
-#    2024/11/16
+#   Blender stencil painter
+#   Powered by Stable Diffusion and Automatic1111 webui api
+#   2024/11/16
+#   To do 
+#   -Fix stencil opacity
+#   -Add image preview panel
+#   -Segmentation to blend/mask areas  (2 channel paint?
+#   
 # ------------------------------------------------------------------------
 
 
 import bpy
 import os 
 from PIL import Image
-
 from math import *
 from mathutils import *
 
@@ -20,7 +24,7 @@ from sdpaint.img.img_process import crop_image
 from bpy.props import (StringProperty,
                        PointerProperty,
                        )
-                       
+
 from bpy.types import (Panel,
                        Operator,
                        PropertyGroup,
@@ -39,7 +43,6 @@ bl_info = {
 #    Operators
 # ------------------------------------------------------------------------
 
-
 class Generate(bpy.types.Operator):
     bl_label = "Generate"
     bl_idname = "generate.myop_operator"
@@ -48,6 +51,8 @@ class Generate(bpy.types.Operator):
         scene = context.scene
         mytool = scene.my_tool
         my_props = scene.my_props
+        
+        #SD API
         prompt = mytool.pos
         negative = mytool.neg
         seed_val = my_props.seed
@@ -76,12 +81,14 @@ class Render(bpy.types.Operator):
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
         filepath = os.path.join(absolute_conf_path, "render.png")
         
+        #Render current viewport
         width,height = get_viewport_size()
         bpy.context.scene.render.resolution_x = width
         bpy.context.scene.render.resolution_y = height
         bpy.context.scene.render.image_settings.file_format = "PNG"
         
-        bpy.context.space_data.overlay.show_overlays = False
+        #OpenGL viewport render settings
+        bpy.context.space_data.overlay.show_overlays = False    #Momentary turn off UI overlays
         bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=False, view_context=True)
         bpy.context.space_data.overlay.show_overlays = True
         
@@ -98,22 +105,28 @@ class CenterStencil(bpy.types.Operator):
 
         #CenterStencil
         bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False, use_scale=True)
-
+        
+        #List viewports?
         v3d_list = [area for area in bpy.context.screen.areas if area.type == 'VIEW_3D']
+        
         if v3d_list:
+            #Get screen area
             mainV3D = max(v3d_list, key=lambda area: area.width * area.height)
-               
+            
             x = mainV3D.width / 2
             y = mainV3D.height / 2
             
+            #Get stencil brush
             try:
                 if bpy.context.sculpt_object:   
                     brushName = bpy.context.tool_settings.sculpt.brush.name
                 else:
                     brushName = bpy.context.tool_settings.image_paint.brush.name
-                    
+                
                 bpy.data.brushes[brushName].stencil_pos.xy = x, y
+                print(x,y)
                 width,height = get_viewport_size()
+                print(width, height)
                 bpy.data.brushes[brushName].stencil_dimension.xy = width/2,height/2
                 
             except:
@@ -131,18 +144,22 @@ class StencilOpacity(bpy.types.Operator):
         opacity_val=my_props.opacity
         setting = self.setting
         
+        #Get brush
         brush = bpy.context.tool_settings.image_paint.brush
         brush = bpy.data.brushes[brush_name]
         
-        brush.texture_slot.opacity = opacity_val
-
-
+        #Should  change Cursor->Texture opacity
+        
+        #brush.texture_slot.opacity = opacity_val
+        brush.texture_overlay_alpha = opacity_val
+        #bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
+        
 # ------------------------------------------------------------------------
 #    Scene Properties
 # ------------------------------------------------------------------------
 
 class MyProperties(PropertyGroup):
-
+    
     api: StringProperty(
         name="API Key",
         description=":",
@@ -161,14 +178,11 @@ class MyProperties(PropertyGroup):
         default="",
         maxlen=1024,
         )
-
     seed: bpy.props.IntProperty(
         name="seed",
         description="Seed value",
         default=-1,
     )
-
-
     steps: bpy.props.IntProperty(
         name="steps",
         description="Sample steps",
@@ -176,7 +190,6 @@ class MyProperties(PropertyGroup):
         min=0,
         max=100
     )
-    
     cfg: bpy.props.FloatProperty(
         name="cfg",
         description="cfg scale",
@@ -184,7 +197,6 @@ class MyProperties(PropertyGroup):
         min=0.0,
         max=100.0
     )
-
     denoise: bpy.props.FloatProperty(
         name="denoise",
         description="Denoising scale",
@@ -192,7 +204,6 @@ class MyProperties(PropertyGroup):
         min=0.0,
         max=1.0
     )
-
     opacity: bpy.props.FloatProperty(
         name="opacity",
         description="Stencil opacity",
@@ -213,7 +224,6 @@ class OBJECT_PT_CustomPanel(Panel):
     bl_region_type = "UI"
     bl_category = "SDPaint"
     bl_context = "imagepaint"
-
     
     @classmethod
     def poll(self,context):
@@ -239,7 +249,6 @@ class OBJECT_PT_CustomPanel(Panel):
         col.prop(context.scene, 'conf_path')
 
         layout.separator()
-
         layout.operator("generate.myop_operator")
         layout.operator("render.myop_operator")
         layout.operator("center.myop_operator")
