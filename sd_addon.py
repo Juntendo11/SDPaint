@@ -1,3 +1,10 @@
+# ------------------------------------------------------------------------
+#    Blender stencil painter
+#    Powered by Stable Diffusion and Automatic1111 webui api
+#    2024/11/16
+# ------------------------------------------------------------------------
+
+
 import bpy
 import os 
 from PIL import Image
@@ -7,6 +14,8 @@ from mathutils import *
 
 from sdpaint.sd.img2img import image_gen
 from sdpaint.bpy.viewport import get_viewport_size
+from sdpaint.img.img_process import crop_image
+
 
 from bpy.props import (StringProperty,
                        PointerProperty,
@@ -51,7 +60,8 @@ class Generate(bpy.types.Operator):
         outPath  = os.path.join(absolute_conf_path, "gen.png")
         print("Generating image")
         ren_img = Image.open(filepath)
-        gen_img = image_gen(absolute_conf_path,ren_img,prompt,negative,seed_val,step_val,cfg_scale,denoise_val)    #output path, img, prompt, negative
+        crop_img = crop_image(ren_img)  #Crop to ceil divisible by 8
+        gen_img = image_gen(absolute_conf_path,crop_img,prompt,negative,seed_val,step_val,cfg_scale,denoise_val)    #output path, img, prompt, negative
         
         #Load stencil
         import_brush(context, outPath)
@@ -122,7 +132,6 @@ class StencilOpacity(bpy.types.Operator):
         setting = self.setting
         
         brush = bpy.context.tool_settings.image_paint.brush
-        
         brush = bpy.data.brushes[brush_name]
         
         brush.texture_slot.opacity = opacity_val
