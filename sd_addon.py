@@ -130,6 +130,7 @@ class CenterStencil(bpy.types.Operator):
                 bpy.data.brushes[brushName].stencil_dimension.xy = width/2,height/2
                 
             except:
+                print("Stencil brusb not found")
                 pass
 
         return {'FINISHED'}
