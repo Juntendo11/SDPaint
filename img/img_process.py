@@ -6,9 +6,8 @@ def ceil_divisible(n, m):
     n1 = m * q
     return n1
 
-def div_image_size(img):
+def div_image_size(width, height):
     #Returns the expected image resolution size
-    width, height = img.size
     
     #Find lowest divisible factor by 8
     width_crop = ceil_divisible(width,8)
@@ -18,7 +17,7 @@ def div_image_size(img):
 def crop_image(img):
     #Returns the cropped image for stable diffusion
     width, height = img.size
-    width_crop, height_crop = div_image_size(img)
+    width_crop, height_crop = div_image_size(width, height)
     dw = width - width_crop
     dh = height - height_crop
 

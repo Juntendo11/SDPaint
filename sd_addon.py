@@ -112,7 +112,6 @@ mathutils.Vector of 2 items in [-inf, inf], default (256.0, 256.0)
 """
 
 class CenterStencil(bpy.types.Operator):
-    
     #Center stencil to viewport
     
     #1) Get current viewport size
@@ -122,36 +121,29 @@ class CenterStencil(bpy.types.Operator):
     
     bl_label = "Center"
     bl_idname = "center.myop_operator"
-
+    
     def execute(self, context):
         scene = context.scene
-
         #CenterStencil
-        bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False, use_scale=True)
-        v3d_list = [area for area in bpy.context.screen.areas if area.type == 'VIEW_3D']
+        #Bad because dimension is fucked
+        #bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False, use_scale=True)
         
-        if v3d_list:
-            mainV3D = max(v3d_list, key=lambda area: area.width * area.height)
-               
-            x = mainV3D.width / 2
-            y = mainV3D.height / 2
+        #1
+        viewport_width, viewport_height = get_viewport_size()
+        
+        #2 
+        stencil_width, stencil_height = div_image_size(viewport_width, viewport_height)
+        
+        #3 Center point
+        try:
+            #Try incase brush may not be selected!
+            brushName = bpy.context.tool_settings.image_paint.brush.name
+            bpy.data.brushes[brushName].stencil_pos.xy = viewport_width/2, viewport_height/2
+            bpy.data.brushes[brushName].stencil_dimension.xy = stencil_width/2, stencil_height/2
             
-            width,height = get_viewport_size()
-            
-            try:
-                if bpy.context.sculpt_object:   
-                    brushName = bpy.context.tool_settings.sculpt.brush.name
-                else:
-                    brushName = bpy.context.tool_settings.image_paint.brush.name
-
-                bpy.data.brushes[brushName].stencil_pos.xy = width/2, height/2
-                width,height = get_viewport_size()
-                bpy.data.brushes[brushName].stencil_dimension.xy = width/2, height/2
-                
-            except:
-                print("No stencil selected")
-                pass
-
+        except:
+            print("No stencil brush selected")
+            pass
         return {'FINISHED'}
     
 class StencilOpacity(bpy.types.Operator):
