@@ -18,7 +18,7 @@ from mathutils import *
 
 from sdpaint.sd.img2img import image_gen
 from sdpaint.bpy.viewport import get_viewport_size
-from sdpaint.img.img_process import crop_image
+from sdpaint.img.img_process import crop_image, div_image_size
 
 
 from bpy.props import (StringProperty,
@@ -95,8 +95,31 @@ class Render(bpy.types.Operator):
         bpy.data.images["Render Result"].save_render(filepath)
         print("Rendering image")
         return {'FINISHED'}
-    
+
+
+"""
+stencil_dimension
+Dimensions of stencil in viewport
+Type:
+mathutils.Vector of 2 items in [-inf, inf], default (256.0, 256.0)
+
+##################################################################
+
+stencil_pos
+Position of stencil in viewport
+Type:
+mathutils.Vector of 2 items in [-inf, inf], default (256.0, 256.0)
+"""
+
 class CenterStencil(bpy.types.Operator):
+    
+    #Center stencil to viewport
+    
+    #1) Get current viewport size
+    #2) Get AI image size => using div_image_size
+    #3) Get center point
+    #4) Get stencil dimension
+    
     bl_label = "Center"
     bl_idname = "center.myop_operator"
 
@@ -105,7 +128,6 @@ class CenterStencil(bpy.types.Operator):
 
         #CenterStencil
         bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False, use_scale=True)
-
         v3d_list = [area for area in bpy.context.screen.areas if area.type == 'VIEW_3D']
         
         if v3d_list:
@@ -114,17 +136,20 @@ class CenterStencil(bpy.types.Operator):
             x = mainV3D.width / 2
             y = mainV3D.height / 2
             
+            width,height = get_viewport_size()
+            
             try:
                 if bpy.context.sculpt_object:   
                     brushName = bpy.context.tool_settings.sculpt.brush.name
                 else:
                     brushName = bpy.context.tool_settings.image_paint.brush.name
-                    
-                bpy.data.brushes[brushName].stencil_pos.xy = x, y
+
+                bpy.data.brushes[brushName].stencil_pos.xy = width/2, height/2
                 width,height = get_viewport_size()
-                bpy.data.brushes[brushName].stencil_dimension.xy = width/2,height/2
+                bpy.data.brushes[brushName].stencil_dimension.xy = width/2, height/2
                 
             except:
+                print("No stencil selected")
                 pass
 
         return {'FINISHED'}
