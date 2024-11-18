@@ -9,7 +9,6 @@
 #   
 # ------------------------------------------------------------------------
 
-
 import bpy
 import os 
 from PIL import Image
@@ -38,7 +37,6 @@ bl_info = {
     "blender": (3, 30, 0),
     "category": "Object",
 }
-
 # ------------------------------------------------------------------------
 #    Operators
 # ------------------------------------------------------------------------
@@ -60,13 +58,21 @@ class Generate(bpy.types.Operator):
         step_val = my_props.steps
         denoise_val = my_props.denoise
         
+        #Path
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
         filepath = os.path.join(absolute_conf_path, "render.png")
         outPath  = os.path.join(absolute_conf_path, "gen.png")
         print("Generating image")
+        
         ren_img = Image.open(filepath)
-        crop_img = crop_image(ren_img)  #Crop to ceil divisible by 8
-        gen_img = image_gen(absolute_conf_path,crop_img,prompt,negative,seed_val,step_val,cfg_scale,denoise_val)    #output path, img, prompt, negative
+        #Crop rendered image to size divisible by 8 (lower ceil)
+        crop_img = crop_image(ren_img)
+        gen_img = image_gen(absolute_conf_path,
+                            crop_img,prompt,
+                            negative,seed_val,
+                            step_val,
+                            cfg_scale,
+                            denoise_val)    #output path, img, prompt, negative
         
         #Load stencil
         import_brush(context, outPath)
@@ -96,21 +102,6 @@ class Render(bpy.types.Operator):
         print("Rendering image")
         return {'FINISHED'}
 
-
-"""
-stencil_dimension
-Dimensions of stencil in viewport
-Type:
-mathutils.Vector of 2 items in [-inf, inf], default (256.0, 256.0)
-
-##################################################################
-
-stencil_pos
-Position of stencil in viewport
-Type:
-mathutils.Vector of 2 items in [-inf, inf], default (256.0, 256.0)
-"""
-
 class CenterStencil(bpy.types.Operator):
     #Center stencil to viewport
     
@@ -124,9 +115,6 @@ class CenterStencil(bpy.types.Operator):
     
     def execute(self, context):
         scene = context.scene
-        #CenterStencil
-        #Bad because dimension is fucked
-        #bpy.ops.brush.stencil_fit_image_aspect(use_repeat=False, use_scale=True)
         
         #1
         viewport_width, viewport_height = get_viewport_size()
@@ -140,13 +128,43 @@ class CenterStencil(bpy.types.Operator):
             brushName = bpy.context.tool_settings.image_paint.brush.name
             bpy.data.brushes[brushName].stencil_pos.xy = viewport_width/2, viewport_height/2
             bpy.data.brushes[brushName].stencil_dimension.xy = stencil_width/2, stencil_height/2
-            
+
         except:
             print("No stencil brush selected")
             pass
         return {'FINISHED'}
+
+class ClearStencil(bpy.types.Operator):
+    """
+    Clear All stencil textures
+    #Need warning
+    """
+    bl_label = "Clear"
+    bl_idname = "clear.myop_operator"
     
+    def execute(self, context):
+        scene = context.scene
+        my_props = scene.my_props
+        print("Pressed")
+        
+        # iterate over all images in the file
+        for image in bpy.data.images:
+
+            # don't do anything if the image has any users.
+            if image.users:
+                continue
+
+            # remove the image otherwise
+            print("Pressed")
+            print(image)
+            bpy.data.images.remove(image)
+
+        return {'FINISHED'}
+
 class StencilOpacity(bpy.types.Operator):
+    """
+    Set stencil opacity from slider value
+    """
     bl_label = "Opacity"
     bl_idname = "opacity.myop_operator"
 
@@ -155,13 +173,13 @@ class StencilOpacity(bpy.types.Operator):
         my_props = scene.my_props
         opacity_val=my_props.opacity
         setting = self.setting
+        print(opacity_val)
         
         #Get brush
         brush = bpy.context.tool_settings.image_paint.brush
         brush = bpy.data.brushes[brush_name]
         
-        #Should  change Cursor->Texture opacity
-        
+        #Should change Cursor->Texture opacity
         #brush.texture_slot.opacity = opacity_val
         brush.texture_overlay_alpha = opacity_val
         #bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
@@ -216,6 +234,7 @@ class MyProperties(PropertyGroup):
         min=0.0,
         max=1.0
     )
+    
     opacity: bpy.props.FloatProperty(
         name="opacity",
         description="Stencil opacity",
@@ -261,9 +280,12 @@ class OBJECT_PT_CustomPanel(Panel):
         col.prop(context.scene, 'conf_path')
 
         layout.separator()
+        #Buttons
         layout.operator("generate.myop_operator")
         layout.operator("render.myop_operator")
+        layout.operator("clear.myop_operator")
         layout.operator("center.myop_operator")
+        #Slider
         layout.prop(my_props,"opacity")
 
         
@@ -298,6 +320,7 @@ classes = (
     Generate,
     Render,
     CenterStencil,
+    ClearStencil,
     StencilOpacity,
 )
 
