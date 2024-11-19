@@ -1,5 +1,12 @@
 - Add PBR
 - Toggle viewport render (Shaded/AO/texture)
 - auto project?
-- blending
-- Stable diffusion generate bigger and crop?
+- blending　using mask?
+- Fix Stencil opacity
+- Image preview
+- Auto swap stencil
+- Buton to clear stencil textures
+- save viewport camera angle
+- store previous seed
+- upscale!
+
