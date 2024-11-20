@@ -1,5 +1,6 @@
 import webuiapi
 import os
+import random
 from PIL import Image
 
 api = webuiapi.WebUIApi(host='127.0.0.1',
@@ -26,3 +27,8 @@ def image_gen(out_path, img, pos, neg, seed, steps, cfg, denoising_strength):
 
     result.image.save(output_directory)
     return result.image
+    
+def generate_seed():
+    # Generates int64 seed value
+    seed_val = random.randint(0, 2**63 - 1)
+    return seed_val

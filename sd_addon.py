@@ -6,7 +6,6 @@
 #   -Fix stencil opacity
 #   -Add image preview panel
 #   -Segmentation to blend/mask areas  (2 channel paint?
-#   
 # ------------------------------------------------------------------------
 
 import bpy
@@ -54,6 +53,7 @@ class Generate(bpy.types.Operator):
         prompt = mytool.pos
         negative = mytool.neg
         seed_val = my_props.seed
+        print(seed_val)
         cfg_scale = my_props.cfg
         step_val = my_props.steps
         denoise_val = my_props.denoise
@@ -148,17 +148,14 @@ class ClearStencil(bpy.types.Operator):
         print("Pressed")
         
         # iterate over all images in the file
-        for image in bpy.data.images:
-
-            # don't do anything if the image has any users.
-            if image.users:
-                continue
-
-            # remove the image otherwise
-            print("Pressed")
-            print(image)
-            bpy.data.images.remove(image)
-
+        """
+        for img in bpy.data.images:
+            img.user_clear()
+        """
+        mat = bpy.context.object.data.materials['Material']
+        ts = mat.texture_slots[0] # first texture slot
+        if ts is not None:
+            ts.texture = None
         return {'FINISHED'}
 
 class StencilOpacity(bpy.types.Operator):
@@ -294,7 +291,6 @@ class OBJECT_PT_CustomPanel(Panel):
 # ------------------------------------------------------------------------
 
 def import_brush(context, filepath):
-    
     file = os.path.split(filepath)[-1]
 
     if os.path.isfile(filepath):
