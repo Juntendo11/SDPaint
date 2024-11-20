@@ -14,13 +14,14 @@ from PIL import Image
 from math import *
 from mathutils import *
 
-from sdpaint.sd.img2img import image_gen
+from sdpaint.sd.img2img import image_gen, generate_seed
 from sdpaint.bpy.viewport import get_viewport_size
 from sdpaint.img.img_process import crop_image, div_image_size
 
 
 from bpy.props import (StringProperty,
                        PointerProperty,
+                       IntProperty,
                        )
 
 from bpy.types import (Panel,
@@ -53,7 +54,17 @@ class Generate(bpy.types.Operator):
         prompt = mytool.pos
         negative = mytool.neg
         seed_val = my_props.seed
-        print(seed_val)
+        
+        # Use previous seed
+        if seed_val == -1:
+            #Seed random #Not needed?
+            seed_val = generate_seed()
+            
+        if seed_reuse:  #come back
+            #Seed value has value => set
+            my_props.seed = seed_val
+
+            
         cfg_scale = my_props.cfg
         step_val = my_props.steps
         denoise_val = my_props.denoise
@@ -101,6 +112,21 @@ class Render(bpy.types.Operator):
         bpy.data.images["Render Result"].save_render(filepath)
         print("Rendering image")
         return {'FINISHED'}
+
+class ReuseSeed(bpy.types.Operator):
+    bl_label = "ReuseSeed"
+    bl_idname = "reuseseed.myop_operator"
+ 
+    def execute(self, context):
+        scene = context.scene
+        my_props = scene.my_props
+
+        try:
+            my_props.seed = seed_val
+        except:
+            print("Previous seed undefined!")
+        return {"FINISHED"}
+    
 
 class CenterStencil(bpy.types.Operator):
     #Center stencil to viewport
@@ -240,7 +266,6 @@ class MyProperties(PropertyGroup):
         max=1.0
     )
 
-
 # ------------------------------------------------------------------------
 #    Panel in TexPaint Mode
 # ------------------------------------------------------------------------
@@ -262,7 +287,10 @@ class OBJECT_PT_CustomPanel(Panel):
         scene = context.scene
         mytool = scene.my_tool
         my_props = scene.my_props
-
+        
+        #Paramter
+        #layout.operator("ReuseSeed.myop_operator")
+        
         layout.prop(mytool, "api")
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
@@ -278,8 +306,10 @@ class OBJECT_PT_CustomPanel(Panel):
 
         layout.separator()
         #Buttons
-        layout.operator("generate.myop_operator")
+        layout.operator("reuseseed.myop_operator")
         layout.operator("render.myop_operator")
+        layout.operator("generate.myop_operator")
+        
         layout.operator("clear.myop_operator")
         layout.operator("center.myop_operator")
         #Slider
@@ -313,8 +343,9 @@ def import_brush(context, filepath):
 classes = (
     MyProperties,
     OBJECT_PT_CustomPanel,
-    Generate,
+    ReuseSeed,
     Render,
+    Generate,
     CenterStencil,
     ClearStencil,
     StencilOpacity,
