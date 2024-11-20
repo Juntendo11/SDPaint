@@ -26,9 +26,10 @@ def image_gen(out_path, img, pos, neg, seed, steps, cfg, denoising_strength):
     output_directory = os.path.join(out_path, "gen.png")
 
     result.image.save(output_directory)
+    print(result)
     return result.image
     
 def generate_seed():
     # Generates int64 seed value
-    seed_val = random.randint(0, 2**63 - 1)
+    seed_val = random.randint(0, 2**31 - 1)
     return seed_val

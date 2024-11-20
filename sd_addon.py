@@ -15,7 +15,7 @@ from math import *
 from mathutils import *
 
 from sdpaint.sd.img2img import image_gen, generate_seed
-from sdpaint.bpy.viewport import get_viewport_size
+from sdpaint.bpy.viewport import get_viewport_size, get_viewport_matrix
 from sdpaint.img.img_process import crop_image, div_image_size
 
 
@@ -37,6 +37,8 @@ bl_info = {
     "blender": (3, 30, 0),
     "category": "Object",
 }
+
+
 # ------------------------------------------------------------------------
 #    Operators
 # ------------------------------------------------------------------------
@@ -92,8 +94,17 @@ class Render(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
+        temp_props = scene.temp_props
+        
+        #Output Path
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
         filepath = os.path.join(absolute_conf_path, "render.png")
+        
+        #Save current viewport view 
+        view_matrix, perspective_matrix = get_viewport_matrix()
+        
+        print(view_matrix)
+        print(perspective_matrix)
         
         #Render current viewport
         width,height = get_viewport_size()
@@ -111,6 +122,7 @@ class Render(bpy.types.Operator):
         bpy.data.images["Render Result"].save_render(filepath)
         print("Rendering image")
         return {'FINISHED'}
+
 
 class ReuseSeed(bpy.types.Operator):
     bl_label = "ReuseSeed"
@@ -200,23 +212,36 @@ class StencilOpacity(bpy.types.Operator):
         #Get brush
         brush = bpy.context.tool_settings.image_paint.brush
         brush = bpy.data.brushes[brush_name]
-        
+
         #Should change Cursor->Texture opacity
         #brush.texture_slot.opacity = opacity_val
         brush.texture_overlay_alpha = opacity_val
         #bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
-        
+
 # ------------------------------------------------------------------------
 #    Scene Properties
 # ------------------------------------------------------------------------
 
 class TempProps(bpy.types.PropertyGroup):
-    temp_seed: IntProperty(
+    temp_seed: IntProperty (
         name="Temporary Seed",
         description="Temporary seed value to be reused",
         default=-1
     )
-    
+    view_matrix: bpy.props.FloatVectorProperty(
+        name="View Matrix",
+        size=16,  # 4x4 matrix flattened
+        subtype='MATRIX',
+        description="View Matrix of the 3D viewport"
+    )
+    perspective_matrix: bpy.props.FloatVectorProperty(
+        name="Perspective Matrix",
+        size=16,  # 4x4 matrix flattened
+        subtype='MATRIX',
+        description="Perspective Matrix of the 3D viewport"
+    )
+
+        
 class MyProperties(PropertyGroup):
     
     api: StringProperty(
@@ -281,7 +306,6 @@ class MyProperties(PropertyGroup):
 # ------------------------------------------------------------------------
 #    Panel in TexPaint Mode
 # ------------------------------------------------------------------------
-
 class OBJECT_PT_CustomPanel(Panel):
     bl_label = "SD_Paint"
     bl_idname = "OBJECT_PT_custom_panel"
@@ -300,9 +324,7 @@ class OBJECT_PT_CustomPanel(Panel):
         mytool = scene.my_tool
         my_props = scene.my_props
         
-        #Paramter
-        #layout.operator("ReuseSeed.myop_operator")
-        
+        #SD Paramter
         layout.prop(mytool, "api")
         layout.prop(mytool, "lora")
         layout.prop(mytool, "pos")
@@ -311,28 +333,35 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(my_props,"steps")
         layout.prop(my_props,"cfg")
         layout.prop(my_props,"denoise")
-        
+
         layout.separator()
         
+        #Image preview
+        layout.label(text="Image Preview")
+        absolute_conf_path = bpy.path.abspath(scene.conf_path)
+        filepath = os.path.join(absolute_conf_path, "gen.png")
+
+        layout.separator()
+        
+        #Output path
         col = layout.column()
         col.prop(context.scene, 'conf_path')
 
         layout.separator()
+
         #Buttons
         layout.operator("reuseseed.myop_operator")
         layout.operator("render.myop_operator")
         layout.operator("generate.myop_operator")
-        
         layout.operator("clear.myop_operator")
         layout.operator("center.myop_operator")
-        #Slider
-        layout.prop(my_props,"opacity")
-
         
+        #Slider
+        layout.prop(my_props, "opacity")
+
 # ------------------------------------------------------------------------
 #    Functions
 # ------------------------------------------------------------------------
-
 def import_brush(context, filepath):
     file = os.path.split(filepath)[-1]
 
@@ -341,7 +370,7 @@ def import_brush(context, filepath):
         tex   = bpy.data.textures.new(file,type="IMAGE")
         image = bpy.data.images.load(filepath, check_existing=False)
         tex.image = image
-        
+
         #Set as texture 
         brush.texture = tex
         brush.texture_slot.map_mode = 'STENCIL'
@@ -352,7 +381,6 @@ def import_brush(context, filepath):
 # ------------------------------------------------------------------------
 #    Registration
 # ------------------------------------------------------------------------
-
 classes = (
     TempProps,
     MyProperties,
