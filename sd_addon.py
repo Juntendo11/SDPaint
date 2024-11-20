@@ -40,7 +40,7 @@ bl_info = {
 # ------------------------------------------------------------------------
 #    Operators
 # ------------------------------------------------------------------------
-
+    
 class Generate(bpy.types.Operator):
     bl_label = "Generate"
     bl_idname = "generate.myop_operator"
@@ -49,21 +49,18 @@ class Generate(bpy.types.Operator):
         scene = context.scene
         mytool = scene.my_tool
         my_props = scene.my_props
+        temp_props = scene.temp_props
         
         #SD API
-        prompt = mytool.pos
+        prompt = mytool.lora + mytool.pos
         negative = mytool.neg
-        seed_val = my_props.seed
+        seed_val = my_props.seed    #default = -1 (random)
         
-        # Use previous seed
+        # Store used seed if randomized
         if seed_val == -1:
-            #Seed random #Not needed?
             seed_val = generate_seed()
-            
-        if seed_reuse:  #come back
-            #Seed value has value => set
-            my_props.seed = seed_val
-
+            #Store seed to temp
+            temp_props.temp_seed = seed_val
             
         cfg_scale = my_props.cfg
         step_val = my_props.steps
@@ -84,7 +81,7 @@ class Generate(bpy.types.Operator):
                             step_val,
                             cfg_scale,
                             denoise_val)    #output path, img, prompt, negative
-        
+                            
         #Load stencil
         import_brush(context, outPath)
         return {'FINISHED'}
@@ -105,8 +102,10 @@ class Render(bpy.types.Operator):
         bpy.context.scene.render.image_settings.file_format = "PNG"
         
         #OpenGL viewport render settings
-        bpy.context.space_data.overlay.show_overlays = False    #Momentary turn off UI overlays
-        bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=False, view_context=True)
+        #Momentary turn off UI overlays
+        bpy.context.space_data.overlay.show_overlays = False
+        bpy.ops.render.opengl(animation=False, render_keyed_only=False, 
+                              sequencer=False, write_still=False, view_context=True)
         bpy.context.space_data.overlay.show_overlays = True
         
         bpy.data.images["Render Result"].save_render(filepath)
@@ -120,13 +119,13 @@ class ReuseSeed(bpy.types.Operator):
     def execute(self, context):
         scene = context.scene
         my_props = scene.my_props
-
+        temp_props = scene.temp_props
         try:
-            my_props.seed = seed_val
+            my_props.seed = temp_props.temp_seed
         except:
             print("Previous seed undefined!")
         return {"FINISHED"}
-    
+
 
 class CenterStencil(bpy.types.Operator):
     #Center stencil to viewport
@@ -211,10 +210,23 @@ class StencilOpacity(bpy.types.Operator):
 #    Scene Properties
 # ------------------------------------------------------------------------
 
+class TempProps(bpy.types.PropertyGroup):
+    temp_seed: IntProperty(
+        name="Temporary Seed",
+        description="Temporary seed value to be reused",
+        default=-1
+    )
+    
 class MyProperties(PropertyGroup):
     
     api: StringProperty(
         name="API Key",
+        description=":",
+        default="",
+        maxlen=1024,
+        )
+    lora: StringProperty(
+        name="Lora",
         description=":",
         default="",
         maxlen=1024,
@@ -292,6 +304,7 @@ class OBJECT_PT_CustomPanel(Panel):
         #layout.operator("ReuseSeed.myop_operator")
         
         layout.prop(mytool, "api")
+        layout.prop(mytool, "lora")
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
         layout.prop(my_props,"seed")
@@ -341,6 +354,7 @@ def import_brush(context, filepath):
 # ------------------------------------------------------------------------
 
 classes = (
+    TempProps,
     MyProperties,
     OBJECT_PT_CustomPanel,
     ReuseSeed,
@@ -358,6 +372,7 @@ def register():
 
     bpy.types.Scene.my_tool = PointerProperty(type=MyProperties)
     bpy.types.Scene.my_props = bpy.props.PointerProperty(type=MyProperties)
+    bpy.types.Scene.temp_props  = bpy.props.PointerProperty(type=TempProps)
 
     #Directory path
     bpy.types.Scene.conf_path = bpy.props.StringProperty \
