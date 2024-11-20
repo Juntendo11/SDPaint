@@ -105,6 +105,8 @@ class Render(bpy.types.Operator):
         
         print(view_matrix)
         print(perspective_matrix)
+        temp_props.view_matrix = view_matrix
+        temp_props.perspective_matrix = perspective_matrix
         
         #Render current viewport
         width,height = get_viewport_size()
@@ -112,11 +114,13 @@ class Render(bpy.types.Operator):
         bpy.context.scene.render.resolution_y = height
         bpy.context.scene.render.image_settings.file_format = "PNG"
         
-        #OpenGL viewport render settings
-        #Momentary turn off UI overlays
+        # OpenGL viewport render settings
+        # Momentary turn off UI overlays
+        
         bpy.context.space_data.overlay.show_overlays = False
         bpy.ops.render.opengl(animation=False, render_keyed_only=False, 
                               sequencer=False, write_still=False, view_context=True)
+                              
         bpy.context.space_data.overlay.show_overlays = True
         
         bpy.data.images["Render Result"].save_render(filepath)
