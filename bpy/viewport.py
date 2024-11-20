@@ -35,7 +35,16 @@ def get_viewport_matrix():
             region = area.spaces[0].region_3d
             view_matrix = region.view_matrix
             perspective_matrix = region.perspective_matrix
+            print(type(view_matrix))
             view_matrix_flatten = [item for sublist in view_matrix for item in sublist]
             perspective_matrix_flatten = [item for sublist in perspective_matrix for item in sublist]
             return view_matrix_flatten, perspective_matrix_flatten
     raise RuntimeError("No 3D View area found.")
+    
+    
+def restore_viewport(viewport_matrix, perspective_matrix):
+    for area in bpy.context.screen.areas:
+        if area.type == 'VIEW_3D':
+            region = area.spaces[0].region_3d
+            region.view_matrix = viewport_matrix
+            #region.perspective_matrix = perspective_matrix

@@ -10,12 +10,13 @@
 
 import bpy
 import os 
+import numpy as np
 from PIL import Image
 from math import *
 from mathutils import *
 
 from sdpaint.sd.img2img import image_gen, generate_seed
-from sdpaint.bpy.viewport import get_viewport_size, get_viewport_matrix
+from sdpaint.bpy.viewport import get_viewport_size, get_viewport_matrix, restore_viewport
 from sdpaint.img.img_process import crop_image, div_image_size
 
 
@@ -37,8 +38,6 @@ bl_info = {
     "blender": (3, 30, 0),
     "category": "Object",
 }
-
-
 # ------------------------------------------------------------------------
 #    Operators
 # ------------------------------------------------------------------------
@@ -198,7 +197,25 @@ class ClearStencil(bpy.types.Operator):
         if ts is not None:
             ts.texture = None
         return {'FINISHED'}
-
+    
+class RestoreViewport(bpy.types.Operator):
+    bl_label = "Restore"
+    bl_idname = "restore.myop_operator"
+    def execute(self, context):
+        scene = context.scene
+        my_props = scene.my_props
+        temp_props = scene.temp_props
+        
+        viewport_matrix = temp_props.view_matrix
+        perspective_matrix = temp_props.perspective_matrix
+        print(type(viewport_matrix))
+        
+        #Pack back into 2D matrix
+        viewport_matrix_packed = np.array(viewport_matrix).reshape(4,4)
+        perspective_matrix_packed = np.array(perspective_matrix).reshape(4,4)
+        restore_viewport(viewport_matrix_packed,perspective_matrix_packed)
+        return {'FINISHED'}
+    
 class StencilOpacity(bpy.types.Operator):
     """
     Set stencil opacity from slider value
@@ -225,8 +242,10 @@ class StencilOpacity(bpy.types.Operator):
 # ------------------------------------------------------------------------
 #    Scene Properties
 # ------------------------------------------------------------------------
-
 class TempProps(bpy.types.PropertyGroup):
+    """
+    Store temporary data to be used within
+    """
     temp_seed: IntProperty (
         name="Temporary Seed",
         description="Temporary seed value to be reused",
@@ -359,7 +378,7 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.operator("generate.myop_operator")
         layout.operator("clear.myop_operator")
         layout.operator("center.myop_operator")
-        
+        layout.operator("restore.myop_operator")
         #Slider
         layout.prop(my_props, "opacity")
 
@@ -394,6 +413,7 @@ classes = (
     Generate,
     CenterStencil,
     ClearStencil,
+    RestoreViewport,
     StencilOpacity,
 )
 
@@ -421,7 +441,6 @@ def unregister():
         unregister_class(cls)
     del bpy.types.Scene.my_tool
     del bpy.types.Scene.conf_path
-
 
 if __name__ == "__main__":
     register()
