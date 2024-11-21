@@ -5,7 +5,7 @@
 #   To do 
 #   -Fix stencil opacity
 #   -Add image preview panel
-#   -Segmentation to blend/mask areas  (2 channel paint?
+#   -Segmentation to blend/mask areas  (2 channel paint)?
 # ------------------------------------------------------------------------
 
 import bpy
@@ -192,10 +192,14 @@ class ClearStencil(bpy.types.Operator):
         for img in bpy.data.images:
             img.user_clear()
         """
-        mat = bpy.context.object.data.materials['Material']
-        ts = mat.texture_slots[0] # first texture slot
-        if ts is not None:
-            ts.texture = None
+        try:
+            mat = bpy.context.object.data.materials['Material']
+            ts = mat.texture_slots[0] # first texture slot
+            if ts is not None:
+                ts.texture = None
+        except:
+            print("Texture not found")
+            
         return {'FINISHED'}
     
 class RestoreViewport(bpy.types.Operator):
