@@ -182,6 +182,9 @@ class ClearStencil(bpy.types.Operator):
     bl_label = "Clear"
     bl_idname = "clear.myop_operator"
     
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+    
     def execute(self, context):
         scene = context.scene
         my_props = scene.my_props
@@ -344,7 +347,7 @@ class OBJECT_PT_CustomPanel(Panel):
     @classmethod
     def poll(self,context):
         return context.object is not None
-
+    
     def draw(self, context):
         layout = self.layout
         scene = context.scene
