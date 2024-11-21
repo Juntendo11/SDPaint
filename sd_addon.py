@@ -82,7 +82,18 @@ class Generate(bpy.types.Operator):
                             step_val,
                             cfg_scale,
                             denoise_val)    #output path, img, prompt, negative
-                            
+        
+        
+        #Preview Set Tex
+        img = bpy.data.images.load("C:\\Users\\PC-kun\\Desktop\\SDOut\\gen.png", check_existing=True) # load img from disk 
+        #img = bpy.data.images['test2.png'] # load from within blend file
+        
+        texture = bpy.data.textures.new(name="previewTexture", type="IMAGE")
+        texture.image = img
+        tex = bpy.data.textures['previewTexture']
+        tex.extension = 'CLIP'  #EXTEND # CLIP # CLIP_CUBE # REPEAT # CHECKER
+        
+        
         #Load stencil
         import_brush(context, outPath)
         return {'FINISHED'}
@@ -182,9 +193,6 @@ class ClearStencil(bpy.types.Operator):
     bl_label = "Clear"
     bl_idname = "clear.myop_operator"
     
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
-    
     def execute(self, context):
         scene = context.scene
         my_props = scene.my_props
@@ -195,14 +203,10 @@ class ClearStencil(bpy.types.Operator):
         for img in bpy.data.images:
             img.user_clear()
         """
-        try:
-            mat = bpy.context.object.data.materials['Material']
-            ts = mat.texture_slots[0] # first texture slot
-            if ts is not None:
-                ts.texture = None
-        except:
-            print("Texture not found")
-            
+        mat = bpy.context.object.data.materials['Material']
+        ts = mat.texture_slots[0] # first texture slot
+        if ts is not None:
+            ts.texture = None
         return {'FINISHED'}
     
 class RestoreViewport(bpy.types.Operator):
@@ -347,7 +351,7 @@ class OBJECT_PT_CustomPanel(Panel):
     @classmethod
     def poll(self,context):
         return context.object is not None
-    
+
     def draw(self, context):
         layout = self.layout
         scene = context.scene
@@ -368,8 +372,9 @@ class OBJECT_PT_CustomPanel(Panel):
         
         #Image preview
         layout.label(text="Image Preview")
-        absolute_conf_path = bpy.path.abspath(scene.conf_path)
-        filepath = os.path.join(absolute_conf_path, "gen.png")
+        #absolute_conf_path = bpy.path.abspath(scene.conf_path)
+        #filepath = os.path.join(absolute_conf_path, "gen.png")
+        
 
         layout.separator()
         
@@ -388,6 +393,9 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.operator("restore.myop_operator")
         #Slider
         layout.prop(my_props, "opacity")
+    
+        col = self.layout.box().column()
+        col.template_preview(bpy.data.textures['previewTexture'])
 
 # ------------------------------------------------------------------------
 #    Functions

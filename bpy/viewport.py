@@ -47,4 +47,5 @@ def restore_viewport(viewport_matrix, perspective_matrix):
         if area.type == 'VIEW_3D':
             region = area.spaces[0].region_3d
             region.view_matrix = viewport_matrix
+            #Perspective matrix is read-only
             #region.perspective_matrix = perspective_matrix
