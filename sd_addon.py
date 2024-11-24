@@ -85,14 +85,14 @@ class Generate(bpy.types.Operator):
         
         
         #Preview Set Tex
-        img = bpy.data.images.load("C:\\Users\\PC-kun\\Desktop\\SDOut\\gen.png", check_existing=True) # load img from disk 
+        #img = bpy.data.images.load("C:\\Users\\PC-kun\\Desktop\\SDOut\\gen.png", check_existing=True) # load img from disk 
         #img = bpy.data.images['test2.png'] # load from within blend file
         
+        img = gen_img
         texture = bpy.data.textures.new(name="previewTexture", type="IMAGE")
         texture.image = img
         tex = bpy.data.textures['previewTexture']
         tex.extension = 'CLIP'  #EXTEND # CLIP # CLIP_CUBE # REPEAT # CHECKER
-        
         
         #Load stencil
         import_brush(context, outPath)
@@ -359,6 +359,7 @@ class OBJECT_PT_CustomPanel(Panel):
         my_props = scene.my_props
         
         #SD Paramter
+        layout.label(text="Stable diffusion parameters")
         layout.prop(mytool, "api")
         layout.prop(mytool, "lora")
         layout.prop(mytool, "pos")
@@ -367,15 +368,10 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(my_props,"steps")
         layout.prop(my_props,"cfg")
         layout.prop(my_props,"denoise")
-
-        layout.separator()
         
-        #Image preview
-        layout.label(text="Image Preview")
         #absolute_conf_path = bpy.path.abspath(scene.conf_path)
         #filepath = os.path.join(absolute_conf_path, "gen.png")
         
-
         layout.separator()
         
         #Output path
@@ -391,11 +387,21 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.operator("clear.myop_operator")
         layout.operator("center.myop_operator")
         layout.operator("restore.myop_operator")
+        
+        layout.separator()
+        
         #Slider
         layout.prop(my_props, "opacity")
-    
+        
+        layout.separator()
+        
+        #Image preview
+        layout.label(text="Image Preview")
         col = self.layout.box().column()
-        col.template_preview(bpy.data.textures['previewTexture'])
+        try:
+            layout.template_preview(bpy.data.textures['previewTexture'])
+        except:
+            print("No preview yet...")
 
 # ------------------------------------------------------------------------
 #    Functions
