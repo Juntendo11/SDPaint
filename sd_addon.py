@@ -66,6 +66,7 @@ class Generate(bpy.types.Operator):
         cfg_scale = my_props.cfg
         step_val = my_props.steps
         denoise_val = my_props.denoise
+        scale = 2.0
         
         #Path
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
@@ -81,7 +82,8 @@ class Generate(bpy.types.Operator):
                             negative,seed_val,
                             step_val,
                             cfg_scale,
-                            denoise_val)    #output path, img, prompt, negative
+                            denoise_val,
+                            scale)    #output path, img, prompt, negative
         
         
         #Preview Set Tex
