@@ -75,8 +75,7 @@ class Generate(bpy.types.Operator):
         print("Generating image")
         
         ren_img = Image.open(filepath)
-        #Crop rendered image to size divisible by 8 (lower ceil)
-        crop_img = crop_image(ren_img)
+        crop_img = crop_image(ren_img)  #Crop rendered image to size divisible by 8 (lower ceil)
         gen_img = image_gen(absolute_conf_path,
                             crop_img,prompt,
                             negative,seed_val,
@@ -185,6 +184,7 @@ class CenterStencil(bpy.types.Operator):
         except:
             print("No stencil brush selected")
             pass
+        
         return {'FINISHED'}
 
 class ClearStencil(bpy.types.Operator):
@@ -240,16 +240,21 @@ class StencilOpacity(bpy.types.Operator):
         scene = context.scene
         my_props = scene.my_props
         opacity_val=my_props.opacity
-        setting = self.setting
-        print(opacity_val)
+        
+        #setting = self.setting
+        #print(opacity_val)
         
         #Get brush
-        brush = bpy.context.tool_settings.image_paint.brush
-        brush = bpy.data.brushes[brush_name]
-
+        #brush = bpy.context.tool_settings.image_paint.brush
+        #brush = bpy.data.brushes[brush_name]
+        #bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
+        #brush = bpy.context.tool_settings.image_paint.brush
+        #brush = bpy.data.brushes.get("TexDraw")
+        #brush.texture_overlay_alpha = opacity_val
+        #bpy.data.brushes["TexDraw"].texture_overlay_alpha = 100
         #Should change Cursor->Texture opacity
         #brush.texture_slot.opacity = opacity_val
-        brush.texture_overlay_alpha = opacity_val
+        #brush.texture_overlay_alpha = opacity_val
         #bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
 
 # ------------------------------------------------------------------------
@@ -257,7 +262,7 @@ class StencilOpacity(bpy.types.Operator):
 # ------------------------------------------------------------------------
 class TempProps(bpy.types.PropertyGroup):
     """
-    Store temporary data to be used within
+    Store temporary data to be used within later
     """
     temp_seed: IntProperty (
         name="Temporary Seed",
@@ -276,10 +281,11 @@ class TempProps(bpy.types.PropertyGroup):
         subtype='MATRIX',
         description="Perspective Matrix of the 3D viewport"
     )
-
-        
+   
 class MyProperties(PropertyGroup):
-    
+    """
+    Store scene properties
+    """
     api: StringProperty(
         name="API Key",
         description=":",
@@ -330,15 +336,20 @@ class MyProperties(PropertyGroup):
         min=0.0,
         max=1.0
     )
-    
-    opacity: bpy.props.FloatProperty(
+    opacity: bpy.props.IntProperty( #Float?
         name="opacity",
         description="Stencil opacity",
-        default=0.5,
-        min=0.0,
-        max=1.0
+        default=33,
+        min=0,
+        max=100
     )
-
+    """
+    scale: bpy.props.EnumProperty(
+        name='Scale', default='SCALE',
+        items=[('X0.5', 'x0.5', 'x0.5'), ('X2', 'x2', 'x2')],
+        description='Output image resolution scale')
+    """
+    
 # ------------------------------------------------------------------------
 #    Panel in TexPaint Mode
 # ------------------------------------------------------------------------
@@ -362,14 +373,20 @@ class OBJECT_PT_CustomPanel(Panel):
         
         #SD Paramter
         layout.label(text="Stable diffusion parameters")
+        
         layout.prop(mytool, "api")
         layout.prop(mytool, "lora")
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
-        layout.prop(my_props,"seed")
-        layout.prop(my_props,"steps")
-        layout.prop(my_props,"cfg")
-        layout.prop(my_props,"denoise")
+        
+        col = layout.column(align=True)
+        row = col.row()
+        
+        col.prop(my_props,"seed")
+        col.prop(my_props,"cfg")
+        row.prop(my_props,"steps")
+        row.prop(my_props,"denoise")
+        layout.operator("reuseseed.myop_operator")
         
         #absolute_conf_path = bpy.path.abspath(scene.conf_path)
         #filepath = os.path.join(absolute_conf_path, "gen.png")
@@ -382,10 +399,15 @@ class OBJECT_PT_CustomPanel(Panel):
 
         layout.separator()
 
-        #Buttons
-        layout.operator("reuseseed.myop_operator")
+        #Execute
+        layout.label(text="Execute")
         layout.operator("render.myop_operator")
         layout.operator("generate.myop_operator")
+        
+        layout.separator()
+        
+        #Controls
+        layout.label(text="Controls")
         layout.operator("clear.myop_operator")
         layout.operator("center.myop_operator")
         layout.operator("restore.myop_operator")
