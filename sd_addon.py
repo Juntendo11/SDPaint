@@ -10,6 +10,7 @@
 
 import bpy
 import os 
+import webuiapi
 import numpy as np
 from PIL import Image
 from math import *
@@ -30,6 +31,14 @@ from bpy.types import (Panel,
                        PropertyGroup,
                        AddonPreferences,
                        )
+# ------------------------------------------------------------------------
+#    API
+# ------------------------------------------------------------------------               
+api = webuiapi.WebUIApi(host='127.0.0.1',
+                        port=7860,
+                        sampler='DPM++ 2M',
+                        steps=22)
+
 # ------------------------------------------------------------------------
 #    Info
 # ------------------------------------------------------------------------                       
@@ -91,9 +100,10 @@ class Generate(bpy.types.Operator):
         
         img = gen_img
         texture = bpy.data.textures.new(name="previewTexture", type="IMAGE")
-        texture.image = img
-        tex = bpy.data.textures['previewTexture']
-        tex.extension = 'CLIP'  #EXTEND # CLIP # CLIP_CUBE # REPEAT # CHECKER
+        
+        #texture.image = img
+        #tex = bpy.data.textures['previewTexture']
+        #tex.extension = 'CLIP'  #EXTEND # CLIP # CLIP_CUBE # REPEAT # CHECKER
         
         #Load stencil
         import_brush(context, outPath)
@@ -251,12 +261,35 @@ class StencilOpacity(bpy.types.Operator):
         #brush = bpy.context.tool_settings.image_paint.brush
         #brush = bpy.data.brushes.get("TexDraw")
         #brush.texture_overlay_alpha = opacity_val
-        #bpy.data.brushes["TexDraw"].texture_overlay_alpha = 100
+        bpy.data.brushes["TexDraw"].texture_overlay_alpha = 100
         #Should change Cursor->Texture opacity
         #brush.texture_slot.opacity = opacity_val
         #brush.texture_overlay_alpha = opacity_val
         #bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
+        return {'FINISHED'}
+    
+class DeepBooru(bpy.types.Operator):
+    """
+    Generate prompt from image
+    """
+    bl_label = "DeepBooru"
+    bl_idname = "deepbooru.myop_operator"
 
+    def execute(self, context):
+        scene = context.scene
+        my_props = scene.my_props
+        mytool = scene.my_tool
+        api = webuiapi.WebUIApi()
+        
+        #Path
+        absolute_conf_path = bpy.path.abspath(scene.conf_path)
+        filepath = os.path.join(absolute_conf_path, "render.png")
+        #interrogate 
+        img = Image.open(filepath)
+        interrogate_result = api.interrogate(image=img, model="deepdanbooru")
+        #prompt = interrogate_result.info
+        mytool.pos = interrogate_result.info
+        return {'FINISHED'}
 # ------------------------------------------------------------------------
 #    Scene Properties
 # ------------------------------------------------------------------------
@@ -411,7 +444,7 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.operator("clear.myop_operator")
         layout.operator("center.myop_operator")
         layout.operator("restore.myop_operator")
-        
+        layout.operator("deepbooru.myop_operator")
         layout.separator()
         
         #Slider
@@ -460,6 +493,7 @@ classes = (
     ClearStencil,
     RestoreViewport,
     StencilOpacity,
+    DeepBooru,
 )
 
 def register():

@@ -1,12 +1,6 @@
-import webuiapi
 import os
 import random
 from PIL import Image
-
-api = webuiapi.WebUIApi(host='127.0.0.1',
-                        port=7860,
-                        sampler='DPM++ 2M',
-                        steps=22)
 
 ads = webuiapi.ADetailer(ad_model="face_yolov8n.pt")
 
