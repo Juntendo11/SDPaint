@@ -38,7 +38,8 @@ api = webuiapi.WebUIApi(host='127.0.0.1',
                         port=7860,
                         sampler='DPM++ 2M',
                         steps=22)
-
+                        
+ads = webuiapi.ADetailer(ad_model="face_yolov8n.pt")
 # ------------------------------------------------------------------------
 #    Info
 # ------------------------------------------------------------------------                       
@@ -99,8 +100,9 @@ class Generate(bpy.types.Operator):
         #img = bpy.data.images['test2.png'] # load from within blend file
         
         img = gen_img
-        texture = bpy.data.textures.new(name="previewTexture", type="IMAGE")
         
+        #Image preview
+        #texture = bpy.data.textures.new(name="previewTexture", type="IMAGE")
         #texture.image = img
         #tex = bpy.data.textures['previewTexture']
         #tex.extension = 'CLIP'  #EXTEND # CLIP # CLIP_CUBE # REPEAT # CHECKER
@@ -251,21 +253,26 @@ class StencilOpacity(bpy.types.Operator):
         my_props = scene.my_props
         opacity_val=my_props.opacity
         
-        #setting = self.setting
-        #print(opacity_val)
+        setting = self.setting
+        print(opacity_val)
         
         #Get brush
-        #brush = bpy.context.tool_settings.image_paint.brush
-        #brush = bpy.data.brushes[brush_name]
-        #bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
-        #brush = bpy.context.tool_settings.image_paint.brush
-        #brush = bpy.data.brushes.get("TexDraw")
-        #brush.texture_overlay_alpha = opacity_val
+        """
+        brush = bpy.context.tool_settings.image_paint.brush
+        brush = bpy.data.brushes[brush_name]
+        bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
+        brush = bpy.context.tool_settings.image_paint.brush
+        brush = bpy.data.brushes.get("TexDraw")
+        brush.texture_overlay_alpha = opacity_val
         bpy.data.brushes["TexDraw"].texture_overlay_alpha = 100
         #Should change Cursor->Texture opacity
-        #brush.texture_slot.opacity = opacity_val
-        #brush.texture_overlay_alpha = opacity_val
-        #bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
+        brush.texture_slot.opacity = opacity_val
+        brush.texture_overlay_alpha = opacity_val
+        bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
+        """
+        #bpy.data.brushes.texture_overlay_alpha = opacity_val
+        bpy.context.scene.tool_settings.image_paint.show_brush = True
+
         return {'FINISHED'}
     
 class DeepBooru(bpy.types.Operator):
@@ -412,17 +419,15 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
         
-        col = layout.column(align=True)
-        row = col.row()
-        
-        col.prop(my_props,"seed")
-        col.prop(my_props,"cfg")
-        row.prop(my_props,"steps")
-        row.prop(my_props,"denoise")
-        layout.operator("reuseseed.myop_operator")
-        
-        #absolute_conf_path = bpy.path.abspath(scene.conf_path)
-        #filepath = os.path.join(absolute_conf_path, "gen.png")
+        row = layout.row()
+        row.prop(my_props, "steps")
+        row.prop(my_props, "denoise")
+        row = layout.row()
+        row.prop(my_props, "seed")
+        row.prop(my_props, "cfg")
+        row = layout.row()
+        row.operator("reuseseed.myop_operator")
+        row.operator("deepbooru.myop_operator")
         
         layout.separator()
         
@@ -444,7 +449,6 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.operator("clear.myop_operator")
         layout.operator("center.myop_operator")
         layout.operator("restore.myop_operator")
-        layout.operator("deepbooru.myop_operator")
         layout.separator()
         
         #Slider
@@ -476,7 +480,7 @@ def import_brush(context, filepath):
         brush.texture = tex
         brush.texture_slot.map_mode = 'STENCIL'
 
-    return {'FINISHED'}
+    return None
 
     
 # ------------------------------------------------------------------------
