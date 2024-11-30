@@ -34,12 +34,14 @@ from bpy.types import (Panel,
 # ------------------------------------------------------------------------
 #    API
 # ------------------------------------------------------------------------               
+"""
 api = webuiapi.WebUIApi(host='127.0.0.1',
                         port=7860,
                         sampler='DPM++ 2M',
                         steps=22)
                         
 ads = webuiapi.ADetailer(ad_model="face_yolov8n.pt")
+"""
 # ------------------------------------------------------------------------
 #    Info
 # ------------------------------------------------------------------------                       
@@ -65,6 +67,7 @@ class Generate(bpy.types.Operator):
         #SD API
         prompt = mytool.lora + mytool.pos
         negative = mytool.neg
+        
         seed_val = my_props.seed    #default = -1 (random)
         
         # Store used seed if randomized
@@ -72,12 +75,12 @@ class Generate(bpy.types.Operator):
             seed_val = generate_seed()
             #Store seed to temp
             temp_props.temp_seed = seed_val
-            
+        
         cfg_scale = my_props.cfg
         step_val = my_props.steps
         denoise_val = my_props.denoise
-        #scale = 2.0
         scale = my_props.scale
+        print(scale)
         
         #Path
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
@@ -100,7 +103,7 @@ class Generate(bpy.types.Operator):
         #img = bpy.data.images.load("C:\\Users\\PC-kun\\Desktop\\SDOut\\gen.png", check_existing=True) # load img from disk 
         #img = bpy.data.images['test2.png'] # load from within blend file
         
-        img = gen_img
+        #img = gen_img
         
         #Image preview
         #texture = bpy.data.textures.new(name="previewTexture", type="IMAGE")
@@ -144,7 +147,7 @@ class Render(bpy.types.Operator):
         bpy.context.space_data.overlay.show_overlays = False
         bpy.ops.render.opengl(animation=False, render_keyed_only=False, 
                               sequencer=False, write_still=False, view_context=True)
-                              
+
         bpy.context.space_data.overlay.show_overlays = True
         
         bpy.data.images["Render Result"].save_render(filepath)
@@ -285,10 +288,18 @@ class DeepBooru(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-
+        my_props = scene.my_props
+        mytool = scene.my_tool
+        #api = webuiapi.WebUIApi()
+        
         #Path
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
         filepath = os.path.join(absolute_conf_path, "render.png")
+        #interrogate
+        #img = Image.open(filepath)
+        #interrogate_result = api.interrogate(image=img, model="deepdanbooru")
+        #prompt = interrogate_result.info
+        #mytool.pos = interrogate_result.info
         mytool.pos = deepBooru(filepath) #Generate prompt from img path
         
         return {'FINISHED'}
@@ -415,10 +426,10 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
         #layout.prop(mytool, "samp") #Need to be declared within api creation...
-        layout.prop(mytool, "scale")
+        
+        layout.prop(my_props, "scale")
         
         row = layout.row()
-        
         row.prop(my_props, "steps")
         row.prop(my_props, "denoise")
         row = layout.row()

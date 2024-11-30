@@ -3,15 +3,14 @@ import random
 import webuiapi
 from PIL import Image
 
-
 api = webuiapi.WebUIApi(host='127.0.0.1',
                         port=7860,
-                        sampler='DPM++ 2M',
+                        sampler="DPM++ 2M",
                         steps=22)
 
 ads = webuiapi.ADetailer(ad_model="face_yolov8n.pt")
 
-def image_gen(out_path, img, pos, neg, seed, steps, cfg, denoising_strength, scale = 1.0):
+def image_gen(out_path, img, pos, neg, seed, steps, cfg, denoising_strength, scale):
     w, h = img.size
     result = api.img2img(images=[img], 
                           prompt=pos,
@@ -21,7 +20,7 @@ def image_gen(out_path, img, pos, neg, seed, steps, cfg, denoising_strength, sca
                           cfg_scale=cfg,
                           adetailer=[ads],
                           denoising_strength=denoising_strength,
-                          resize_mode=2,
+                          resize_mode=2, #2: Resize and Fill
                           width=w*scale,
                           height=h*scale,
                           )
