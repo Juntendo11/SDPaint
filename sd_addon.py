@@ -16,7 +16,7 @@ from PIL import Image
 from math import *
 from mathutils import *
 
-from sdpaint.sd.img2img import image_gen, generate_seed
+from sdpaint.sd.img2img import image_gen, generate_seed, deepBooru
 from sdpaint.bpy.viewport import get_viewport_size, get_viewport_matrix, restore_viewport
 from sdpaint.img.img_process import crop_image, div_image_size
 
@@ -76,7 +76,8 @@ class Generate(bpy.types.Operator):
         cfg_scale = my_props.cfg
         step_val = my_props.steps
         denoise_val = my_props.denoise
-        scale = 2.0
+        #scale = 2.0
+        scale = my_props.scale
         
         #Path
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
@@ -271,7 +272,7 @@ class StencilOpacity(bpy.types.Operator):
         bpy.data.brushes["TexDraw"].texture_overlay_alpha = opacity_val
         """
         #bpy.data.brushes.texture_overlay_alpha = opacity_val
-        bpy.context.scene.tool_settings.image_paint.show_brush = True
+        #bpy.context.scene.tool_settings.image_paint.show_brush = True
 
         return {'FINISHED'}
     
@@ -284,18 +285,12 @@ class DeepBooru(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        my_props = scene.my_props
-        mytool = scene.my_tool
-        api = webuiapi.WebUIApi()
-        
+
         #Path
         absolute_conf_path = bpy.path.abspath(scene.conf_path)
         filepath = os.path.join(absolute_conf_path, "render.png")
-        #interrogate 
-        img = Image.open(filepath)
-        interrogate_result = api.interrogate(image=img, model="deepdanbooru")
-        #prompt = interrogate_result.info
-        mytool.pos = interrogate_result.info
+        mytool.pos = deepBooru(filepath) #Generate prompt from img path
+        
         return {'FINISHED'}
 # ------------------------------------------------------------------------
 #    Scene Properties
@@ -350,6 +345,13 @@ class MyProperties(PropertyGroup):
         default="",
         maxlen=1024,
         )
+    scale: bpy.props.FloatProperty(
+        name="scale",
+        description="scale",
+        default=1.0,
+        min=0.0,
+        max=10.0
+        )
     seed: bpy.props.IntProperty(
         name="seed",
         description="Seed value",
@@ -383,12 +385,6 @@ class MyProperties(PropertyGroup):
         min=0,
         max=100
     )
-    """
-    scale: bpy.props.EnumProperty(
-        name='Scale', default='SCALE',
-        items=[('X0.5', 'x0.5', 'x0.5'), ('X2', 'x2', 'x2')],
-        description='Output image resolution scale')
-    """
     
 # ------------------------------------------------------------------------
 #    Panel in TexPaint Mode
@@ -418,8 +414,11 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(mytool, "lora")
         layout.prop(mytool, "pos")
         layout.prop(mytool, "neg")
+        #layout.prop(mytool, "samp") #Need to be declared within api creation...
+        layout.prop(mytool, "scale")
         
         row = layout.row()
+        
         row.prop(my_props, "steps")
         row.prop(my_props, "denoise")
         row = layout.row()
